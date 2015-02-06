@@ -5,13 +5,14 @@
  */
 package studypointexercise1;
 
+import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.InetSocketAddress;
-
+import java.util.List;
 
 /**
  * @author Lars Mortensen
@@ -29,6 +30,7 @@ public class StudyPointExercise1 {
         }
         HttpServer server = HttpServer.create(new InetSocketAddress(ip, port), 0);
         server.createContext("/welcome", new RequestHandler());
+        server.createContext("/headers", new HeaderHandler());
         server.setExecutor(null); // Use the default executor
         server.start();
         System.out.println("Server started, listening on port: " + port);
@@ -38,18 +40,80 @@ public class StudyPointExercise1 {
 
         @Override
         public void handle(HttpExchange he) throws IOException {
-            StringBuilder bu = new StringBuilder();
 
-            String response = "<h1>Welcome to my very first almost home made Web Server :-)</h1>";
-            response += "<br>" + "URI " + he.getRequestURI();
-//        bu.append(response);
-//        bu.append("<br>");
-//        bu.append("URL: " +he.getRequestURI());
+            StringBuilder sb = new StringBuilder();
+            sb.append("<!DOCTYPE html>\n");
+            sb.append("<html>\n");
+            sb.append("<head>\n");
+            sb.append("<title>My fancy Web Site</title>\n");
+            sb.append("<meta charset='UTF-8'>\n");
+            sb.append("</head>\n");
+            sb.append("<body>\n");
 
-            he.sendResponseHeaders(200, response.length());
+            sb.append("<h1>Welcome to my very first almost home made Web Server :-)</h1>");
+            sb.append("<br>").append("URI ").append(he.getRequestURI());
+
+            sb.append("</body>\n");
+            sb.append("</html>\n");
+
+            Headers h = he.getResponseHeaders();
+            h.add("Content-Type", "text/html");
+
+            he.sendResponseHeaders(200, sb.length());
             try (PrintWriter pw = new PrintWriter(he.getResponseBody())) {
-                pw.print(response); //What happens if we use a println instead of print --> Explain
+                pw.print(sb.toString()); //What happens if we use a println instead of print --> Explain
             }
         }
+    }
+
+    static class HeaderHandler implements HttpHandler {
+
+        @Override
+        public void handle(HttpExchange he) throws IOException {
+            StringBuilder sb = new StringBuilder();
+
+            sb.append("<!DOCTYPE html>\n");
+            sb.append("<html>\n");
+            sb.append("<head>\n");
+            sb.append("<title>My fancy Web Site</title>\n");
+            sb.append("<meta charset='UTF-8'>\n");
+            sb.append("</head>\n");
+            sb.append("<body>\n");
+
+            sb.append("<table border=1 style=width:100%>");
+            sb.append("<tr>");
+
+            sb.append("<th align:center>Header</th><th align:center>Value</th>");
+
+            sb.append("</tr>");
+
+            sb.append("<tr>");
+
+            for (String s : he.getRequestHeaders().keySet()) {
+
+                sb.append("<td>").append(s).append("</td>");
+
+                List<String> list = he.getRequestHeaders().get(s);
+
+                sb.append("<td>").append(list).append("</td>");
+
+                sb.append("</tr>");
+            }
+
+            sb.append("</table>");
+
+
+            sb.append("</body>\n");
+            sb.append("</html>\n");
+
+            Headers h = he.getResponseHeaders();
+            h.add("Content-Type", "text/html");
+
+            he.sendResponseHeaders(200, sb.length());
+            try (PrintWriter pw = new PrintWriter(he.getResponseBody())) {
+                pw.print(sb.toString()); //What happens if we use a println instead of print --> Explain
+            }
+        }
+
     }
 }
