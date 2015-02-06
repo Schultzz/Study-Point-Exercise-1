@@ -17,6 +17,7 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.util.List;
+import java.util.Scanner;
 
 /**
  * @author Lars Mortensen
@@ -36,6 +37,7 @@ public class StudyPointExercise1 {
         server.createContext("/welcome", new RequestHandler());
         server.createContext("/headers", new HeaderHandler());
         server.createContext("/pages", new SimpleFileHandler());
+        server.createContext("/parameter", new ParameteresHandler());
         server.setExecutor(null); // Use the default executor
         server.start();
         System.out.println("Server started, listening on port: " + port);
@@ -71,32 +73,12 @@ public class StudyPointExercise1 {
         }
     }
 
-      static class SimpleFileHandler implements HttpHandler {
+    static class ParameteresHandler implements HttpHandler {
 
         @Override
         public void handle(HttpExchange he) throws IOException {
-            File file = new File(contentFolder + "index.html");
-            byte[] bytesToSend = new byte[(int) file.length()];
-            try {
-                BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file));
-                bis.read(bytesToSend, 0, bytesToSend.length);
-            } catch (IOException ie) {
-                System.out.println(ie);
-            }
-            he.sendResponseHeaders(200, bytesToSend.length);
-            try (OutputStream os = he.getResponseBody()) {
-                os.write(bytesToSend, 0, bytesToSend.length);
-            }
-           
-        }
-    }
-    
-    static class HeaderHandler implements HttpHandler {
 
-        @Override
-        public void handle(HttpExchange he) throws IOException {
             StringBuilder sb = new StringBuilder();
-
             sb.append("<!DOCTYPE html>\n");
             sb.append("<html>\n");
             sb.append("<head>\n");
@@ -105,40 +87,101 @@ public class StudyPointExercise1 {
             sb.append("</head>\n");
             sb.append("<body>\n");
 
-            sb.append("<table border=1 style=width:100%>");
-            sb.append("<tr>");
+            sb.append("<h1>Parameters!</h1>");
 
-            sb.append("<th align:center>Header</th><th align:center>Value</th>");
+            String method = he.getRequestMethod();
 
-            sb.append("</tr>");
+            sb.append("Method is:").append(method).append("<br>");
 
-            sb.append("<tr>");
-
-            for (String s : he.getRequestHeaders().keySet()) {
-
-                sb.append("<td>").append(s).append("</td>");
-
-                List<String> list = he.getRequestHeaders().get(s);
-
-                sb.append("<td>").append(list).append("</td>");
-
-                sb.append("</tr>");
+            if (method.equals("GET")) {
+                sb.append(he.getRequestURI().getQuery());
+            } else {
+                Scanner scan = new Scanner(he.getRequestBody());
+                while (scan.hasNext()) {
+                    sb.append("Request body, with Post-parameters: ").append(scan.nextLine());
+                    sb.append("</br>");
+                }
             }
+                sb.append("</body>\n");
+                sb.append("</html>\n");
 
-            sb.append("</table>");
+                Headers h = he.getResponseHeaders();
+                h.add("Content-Type", "text/html");
 
-
-            sb.append("</body>\n");
-            sb.append("</html>\n");
-
-            Headers h = he.getResponseHeaders();
-            h.add("Content-Type", "text/html");
-
-            he.sendResponseHeaders(200, sb.length());
-            try (PrintWriter pw = new PrintWriter(he.getResponseBody())) {
-                pw.print(sb.toString()); //What happens if we use a println instead of print --> Explain
+                he.sendResponseHeaders(200, sb.length());
+                try (PrintWriter pw = new PrintWriter(he.getResponseBody())) {
+                    pw.print(sb.toString()); //What happens if we use a println instead of print --> Explain
+                }
             }
         }
 
+        static class SimpleFileHandler implements HttpHandler {
+
+            @Override
+            public void handle(HttpExchange he) throws IOException {
+                File file = new File(contentFolder + "index.html");
+                byte[] bytesToSend = new byte[(int) file.length()];
+                try {
+                    BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file));
+                    bis.read(bytesToSend, 0, bytesToSend.length);
+                } catch (IOException ie) {
+                    System.out.println(ie);
+                }
+                he.sendResponseHeaders(200, bytesToSend.length);
+                try (OutputStream os = he.getResponseBody()) {
+                    os.write(bytesToSend, 0, bytesToSend.length);
+                }
+
+            }
+        }
+
+        static class HeaderHandler implements HttpHandler {
+
+            @Override
+            public void handle(HttpExchange he) throws IOException {
+                StringBuilder sb = new StringBuilder();
+
+                sb.append("<!DOCTYPE html>\n");
+                sb.append("<html>\n");
+                sb.append("<head>\n");
+                sb.append("<title>My fancy Web Site</title>\n");
+                sb.append("<meta charset='UTF-8'>\n");
+                sb.append("</head>\n");
+                sb.append("<body>\n");
+
+                sb.append("<table border=1 style=width:100%>");
+                sb.append("<tr>");
+
+                sb.append("<th align:center>Header</th><th align:center>Value</th>");
+
+                sb.append("</tr>");
+
+                sb.append("<tr>");
+
+                for (String s : he.getRequestHeaders().keySet()) {
+
+                    sb.append("<td>").append(s).append("</td>");
+
+                    List<String> list = he.getRequestHeaders().get(s);
+
+                    sb.append("<td>").append(list).append("</td>");
+
+                    sb.append("</tr>");
+                }
+
+                sb.append("</table>");
+
+                sb.append("</body>\n");
+                sb.append("</html>\n");
+
+                Headers h = he.getResponseHeaders();
+                h.add("Content-Type", "text/html");
+
+                he.sendResponseHeaders(200, sb.length());
+                try (PrintWriter pw = new PrintWriter(he.getResponseBody())) {
+                    pw.print(sb.toString()); //What happens if we use a println instead of print --> Explain
+                }
+            }
+
+        }
     }
-}
